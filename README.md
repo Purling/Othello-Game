@@ -10,7 +10,7 @@ how best to play the game.
 This assignment is worth 15% of your final grade.
 
 {:.msg-warn}  
-**Deadline**: Sunday TODO,   2020, at 11:00pm Canberra time _sharp_
+**Deadline**: Monday, 2nd November, 2020, at 11:00pm Canberra time _sharp_
 
 ## Overview of Tasks
 
