@@ -357,7 +357,7 @@ off branches of the search space early is called _pruning_, and one
 effective method of pruning is called
 
  [Alpha-Beta
-Pruning](https://cs.anu.edu.au/courses/comp1100/lectures/09-2-Alpha_Beta.pdf),
+Pruning](https://cs.anu.edu.au/courses/comp1100/lectures/10-1-Alpha_Beta.pdf),
 which was discussed in lectures (is this still current?)
 
 Good pruning may allow your search to
