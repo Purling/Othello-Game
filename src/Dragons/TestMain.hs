@@ -1,12 +1,12 @@
 module Dragons.TestMain where
 
 import AITests
-import CheckersTests
+import OthelloTests
 import Testing
 
 allTests :: Test
 allTests = TestGroup "All Tests"
-  [ checkersTests
+  [ othelloTests
   , aiTests
   ]
 

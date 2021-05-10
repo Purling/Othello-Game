@@ -12,11 +12,11 @@ cabal-version:       >=1.10
 library
   exposed-modules:     AI
                      , AITests
-                     , Checkers
-                     , CheckersTests
-                     , Dragons.Checkers
-                     , Dragons.Checkers.CodeWorld
-                     , Dragons.Checkers.Text
+                     , Othello
+                     , OthelloTests
+                     , Dragons.Othello
+                     , Dragons.Othello.CodeWorld
+                     , Dragons.Othello.Text
                      , Dragons.Game
                      , Dragons.Game.Network
                      , Dragons.Game.UI.CodeWorld
@@ -62,4 +62,12 @@ test-suite game-tests
                      , comp1100-assignment3
   hs-source-dirs:      test
   ghc-options:         -threaded -Wall
+  default-language:    Haskell2010
+
+executable tournament
+  main-is:             Main.hs
+  build-depends:       base
+                     , comp1100-assignment3
+  hs-source-dirs:      app
+  ghc-options:         -threaded -Wall -dynamic
   default-language:    Haskell2010

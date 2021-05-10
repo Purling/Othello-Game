@@ -1,12 +1,12 @@
 {-|
 Module      : AI
-Description : AIs for Checkers
+Description : AIs for Othello
 Copyright   : (c) 2020 Your Name Here
 License     : AllRightsReserved
 -}
 module AI where
 
-import           Checkers
+import Othello
 
 -- | Type of AI functions you can choose to write.
 data AIFunc

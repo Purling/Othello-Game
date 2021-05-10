@@ -4,20 +4,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 {-|
-Module      : Dragons.Checkers
-Description : Checkers-specific things students don't need to see
+Module      : Dragons.Othello
+Description : Othello-specific things students don't need to see
 Copyright   : (c) 2020 The Australian National University
 License     : AllRightsReserved
 
-This module collects functions and instances for Checkers-specific data
+This module collects functions and instances for Othello-specific data
 structures (so they don't belong in the generic game framework), but
 are also implementation details that students don't need to concern
 themselves with.
 -}
-module Dragons.Checkers where
+module Dragons.Othello where
 
 import AI
-import Checkers
+import Othello
 import Data.Aeson
 import Dragons.Game
 
@@ -31,9 +31,9 @@ toAITable = (fmap . fmap) toGenericAIFunc
 
 rules1100 :: GameRules GameState Move
 rules1100 = GameRules
-  { gameInitialState = initialState (8, 8)
-  , gameGetTurn = turn
-  , gameApplyMove = applyMove
+  { gameInitialState = initialState (8,8)
+  , gameGetTurn = getTurn
+  , gameApplyMove = flip applyMove
   }
 
 -- How to turn move types to and from JSON. Best practice is
@@ -44,45 +44,21 @@ rules1100 = GameRules
 
 instance FromJSON Move where
   parseJSON = withObject "move" $ \o -> Move
-    <$> o .: "from"
-    <*> o .: "to"
-
-instance FromJSON Location where
-  parseJSON = withObject "location" $ \o -> Location
-    <$> o .: "x"
-    <*> o .: "y"
+    <$> o .: "pos"
 
 instance ToJSON Move where
-  toJSON (Move from to) = object
-    [ "from" .= from
-    , "to" .= to
+  toJSON (Move pos) = object
+    [ "pos" .= pos
     ]
 
-instance ToJSON Location where
-  toJSON (Location x y) = object
-    [ "x" .= x, "y" .= y ]
-
-instance ToJSON Captor where 
-  toJSON c = case c of 
-    None -> object []
-    Captor loc capt -> object
-       [ "loc" .= loc, "captured" .= capt ]
-
 instance ToJSON GameState where
-  toJSON (State t c bnd brd (History n h)) = object
-    [ "turn" .= t
-    , "captured" .= c
-    , "bounds" .= bnd
-    , "board" .= jsonBoard brd
-    , "counter" .= n
-    , "history" .= map jsonBoard h
+  toJSON (GameState _ turn board) = object
+    [ "turn" .= turn
+    , "board" .= jsonBoard board
     ]
     where
       jsonBoard :: Board -> Value
       jsonBoard = String . (foldMap . foldMap) (\case
-        Piece Player1 Pawn -> "1"
-        Piece Player2 Pawn -> "2"
-        Piece Player1 King -> "!"
-        Piece Player2 King -> "@"
-        Empty -> " "
-        Blank -> "#")
+        Just Player1 -> "1"
+        Just Player2 -> "2"
+        Nothing -> " ")

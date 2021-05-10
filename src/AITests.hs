@@ -7,7 +7,7 @@ License     : AllRightsReserved
 module AITests where
 
 import           AI
-import           Checkers
+import           Othello
 import           Testing
 
 aiTests :: Test

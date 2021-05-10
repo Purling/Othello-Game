@@ -1,30 +1,33 @@
-# COMP1100 Assignment 3
+# COMP1100 Assignment 3 - Othello
 
-In this assignment, you will develop a [software
-agent](https://en.wikipedia.org/wiki/Software_agent) or *AI bot* that
-plays [Draughts](https://en.wikipedia.org/wiki/English_draughts).  We have
-implemented the rules of the game for you, but you will have to decide
-how best to play the game.
+In this assignment, you will develop an AI that plays [Othello (also
+known as Reversi)](https://en.wikipedia.org/wiki/Reversi), a classic
+board game. We have implemented the rules of the game for you, but you
+will have to decide how best to play the game.
 
-{:.msg-info}  
+{:.msg-info}
 This assignment is worth 15% of your final grade.
 
-{:.msg-warn}  
-**Deadline**: Monday, 2nd November, 2020, at 11:00pm Canberra time _sharp_
+{:.msg-warn}
+**Deadline**: Saturday 29th May, 2021, at 11:00pm Canberra time *sharp*
+
+*Deadline for report only: Sunday 30th May, 2021, at 11:00pm Canberra time sharp* 
+We introduce this seperate deadline for report ONLY to give more time for quality report. 
+No other parts of assignment will be accepted for this deadline except `Report.pdf`.
+
 
 ## Overview of Tasks
 
-This assignment is marked out of 100.
+This assignment is marked out of 100 (120 for 1130):
 
+| **Task**              | **COMP1100** | **COMP1130** |  
+|-----------------------|--------------|--------------|
+| Main Task: Othello AI | 55 Marks     | 65 Marks     |
+| Unit Tests            | 10 Marks     | 10 Marks     |
+| Style                 | 10 Marks     | 10 Marks     |
+| Technical Report      | 25 Marks     | 35 Marks     |
 
-| **Task**               | **Marks**    |
-|------------------------|--------------|
-| Main Task: Checkers AI | 55 Marks     |
-| Unit Tests             | 10 Marks     |
-| Style                  | 10 Marks     |
-| Technical Report       | 25 Marks     |
-
-{:.msg-warn}  
+{:.msg-warn}
 As with assignment 2, code that does not compile will be
 penalised. This means that **both** the commands `cabal v2-run game`
 (with sensible arguments) **and** `cabal v2-test` must run without
@@ -33,86 +36,67 @@ will be applied. If you have a partial solution that you cannot get
 working, you should comment it out and write an additional comment
 directing your tutor's attention to it.
 
+
 ## Getting Started
 
-Fork the assignment repository and clone it to your computer,
-following the same steps as in [Lab 2]({% link _labs/02.md %}). The
+Fork the assignment repository and create a project for it in VSCode,
+following the same steps as in [Lab
+2](https://cs.anu.edu.au/courses/comp1100/labs/02/#forking-a-project). The
 assignment repository is at
-<https://gitlab.cecs.anu.edu.au/comp1100/comp1100-assignment3.git>.
+<https://gitlab.cecs.anu.edu.au/comp1100/comp1100-assignment3>.
+
 
 ## Overview of the Game
 
-American checkers, or English draughts. We have used the name
-'checkers' rather than draughts, to avoid confusion with other
-draughts variants. The game is played on an 8-by-8 chess board,
-where only the darker tiles are used. Here is a look at the board
-at the start of the game:
+Othello (also known as Reversi) is a board game played on an 8x8 board
+with 64 discs. Each disc is light on one side and dark on the other.
+The game starts with 4 discs in the centre of the board: two dark and
+two light.
 
-![Initial State](https://en.wikipedia.org/wiki/File:CheckersStandard.jpg)
+![Othello starting position](images/starting.png)
 
-There are four types of squares on the board:
+To make a move, a player places a disc with their colour facing up on
+an unoccupied square on the board, such that it will capture at least
+one of the opponents discs.
 
-* Shaded (green) squares can be occupied by a piece;
-* Black discs are Player 1's normal pieces (*Pawns*);
-* Black-gold discs are Player 1's promoted pieces (*Kings*);
-* Red, and red-gold discs are the same for Player 2; and
-* White squares cannot be occupied.
+Capturing occurs if the placed disc forms a line (horizontal, vertical
+or diagonal) that has one or more of the opponents discs on it and is
+ended by another of the current player's discs, with none of the current
+player's discs in-between. All of the opponents
+discs on this line are flipped over, becoming the current player's discs.
+It is possible (and in fact quite common) for a single move to capture more
+than one line, and all the pieces which can be captured in a move must be
+captured (flipped).
 
-Black moves first. On your turn, there are up to four different types
-of moves you can make
+![Othello capture](images/capture.png)
 
-* Step your piece diagonally into an adjacent empty square:
-   - for _Pawns_ this must be forwards,
-   - for _Kings_ this can also be backwards.
-* Jump your piece diagonally over an opponent's piece to an empty
-  square to *capture* the opponent's piece, then (if possible) make a
-  Jump move again with your same piece.
-   - As with ordinary moves, this must be forward for _Pawns_.
-* If on any turn a _Pawn_ reaches the farthest row forward (the "king
-  row") it becomes a _King_ and its turn ends, even if in the middle
-  of a jump sequence.
+The dark player plays first, and play alternates between the two
+players.  If a player can't make a legal move, their turn is
+skipped. If neither player can make a legal move, the game is over and
+the player with the most discs wins.
 
-When it is possible to make a Jump move, you must. But if there are
-multiple possible jumps, you may choose among them. In a sequence of
-jumps you may only jump over an opposition piece once. Pieces to be
-taken in a jump-sequence are displayed in the CodeWorld game in
-purple.
-
-The game continues until one of three things are true:
-
-* A player cannot make a move (most likely because all of that
-  player's pieces have been captured).
-
-* The board reaches a state which it has already been in at some
-  earlier point in the game. This guards against players jumping
-  pieces back and forth, but not capturing, and is not in the official
-  rules.
-
-* The last 40 of both players moves have been made with no captures or
-  promotions (stalemate).
-
-In the first case, the winner is the player who makes the final move.
-In the other cases, the game ends in a draw.
-
-Please consult the [official
-rules](https://www.boardspace.net/checkers/english/rules_of_checkers_english.pdf)
-for more information. Clearly, not all of these official rules apply
-to computerised play, but Section 1 is applicable.
 
 ## Overview of the Repository
 
 Most of your code will be written in `src/AI.hs`, but you will also
-need to write tests in `src/AITests.hs`.
+need to write tests in `src/AITests.hs`. 
+
+{:.msg-warn}
+The only files you are allowed to modify in your submission are
+`src/AI.hs` and `src/AITest.hs`. Any other modifications risk
+changing the rules of the game, so you would be playing a different
+game to the one in the assignment. Doing so may impact the tournament 
+and your marks.
 
 ### Other Files
 
-* `src/Checkers.hs` implements the rules of Checkers. You should read
+* `src/Othello.hs` implements the rules of Othello. You should read
   through this file and familiarise yourself with the data
   declarations and the type signatures of the functions in it, as you
   will use some of these to analyse the game states. You do not need
   to understand how every function in this file works in detail.
 
-* `src/CheckersTests.hs` implements some unit tests for the game. You
+* `src/OthelloTests.hs` implements some unit tests for the game. You
   are welcome to read through it.
 
 * `src/AITests.hs` is an empty file for you to write tests for your
@@ -164,14 +148,15 @@ code. The commands provided are very similar to last time:
    the first call to a function that is `undefined`.
 
 * `cabal v2-haddock`: Generate documentation in HTML format, which you
-  can read with a web browser. This might be a nice way to read a
+  can read with a web browser (simply by copying the path for index.html to the 
+  web browser). This might be a nice way to read a
   summary of the game module, but it also documents the `Dragons`
   modules which you can safely ignore.
 
 {:.msg-info}  
 You should execute these cabal commands in the **top-level directory**
 of your project: `comp1100-assignment3` (i.e., the directory you are
-in when you launch a terminal from VSCodium).
+in when you launch a terminal from VSCode).
 
 ## Overview of the Test Program
 
@@ -205,7 +190,7 @@ Replace `ARGS` with a collection of arguments from the following list:
 * `--ui codeworld`: Show the game using CodeWorld. This is the default
   user interface. Use your web browser to play the game, as in
   previous assignments. Unlike the codeworld programs in previous
-  assignments, you must terminate the program with `Ctrl-C` and
+  assignments, you must terminate the program with `Ctrl+C` and
   restart it if you want to restart your game.
 
 * `--ui text`: Show the game in the terminal.
@@ -266,22 +251,22 @@ as previously mentioned we are unable to provide any support for this
 feature.
 
 
-## Main Task: Checkers AI (55 Marks)
+## Main Task: Othello AI (COMP1100: 55 Marks, COMP1130: 65 Marks)
 
-Implement an AI (of type `AIFunc`, defined in `src/AI.hs`). There is a
-list called `ais` in that file, and we will mark the AI you call
-`"default"` in that list. This list is also where the framework looks
-when it tries to load an AI by name.
+### Your Task
+
+Implement an AI (of type `AI`) for Othello in `src/AI.hs`. There is a
+list called `ais` in that file, and **we will mark the AI you call
+"default" in that list.**
 
 We will test your AI's performance by comparing it to implementations
 written by course staff, using a variety of standard approaches. Its
 performance against these AIs will form a large part of the marks for
 this Task.
 
-{:.msg-warn}  
-It is **vital** that you indicate one AI as "default", otherwise we
-will not know which one to mark.
-
+{:.msg-warn}
+It is **vital** that you indicate one AI as "default", otherwise we will
+not know which one to mark.
 
 ## Understanding the `AIFunc` Type
 
@@ -307,13 +292,14 @@ move in time, the program will stop with an error.
 
 ### Discussion
 
-Your AI should inspect the `Turn` within the `Game` to see whose turn
+Your AI should inspect the `Turn` within the `GameState` to see whose turn
 it is. You may call `error` if the `Turn` is `GameOver` - your AI
 should never be called on a finished game. Your AI can then use the
-`Player` value and `otherPlayer` function to work out how to evaluate
-the board.
+`Player` value and `otherPlayer` function to work out how to evaluate the
+board.
 
-{:.msg-info}  
+{:.msg-info}
+
 You may also assume that we will only ever call your AI if there is a
 legal move it can make. In particular, this means that we will not
 deduct marks for assuming that a list of legal moves is non-empty
@@ -331,9 +317,10 @@ it can. We have provided this for you, so you can see what a simple
 
 ### Interlude: Heuristics
 
-Heuristic functions are discussed in the lecture on game trees.  We
-expect the quality of your heuristic function---how accurately it
-scores game states---to have a large impact on how well your AI
+Heuristic functions were discussed in [the lecture on game
+trees](https://cs.anu.edu.au/courses/comp1100/lectures/09-2-Game_Trees.pdf). We
+expect the quality of your heuristic function - how accurately it
+scores game states - to have a large impact on how well your AI
 performs.
 
 ### Greedy Strategy
@@ -342,19 +329,18 @@ performs.
 provide the greatest _immediate_ advantage. In the context of this
 game, it means always making the move that will give it the greatest
 increase in heuristic. Try writing a simple heuristic and a greedy
-strategy, and see whether it beats your "first legal move" AI. Bear in
-mind that in a game like this `firstLegalMove` will not play terribly,
-as it still must capture when given the opportunity.
-
-As a capture sequence is a turn that involves multiple moves, you may
-want to write a strategy here that considers a whole turn, rather than
-just a single move.
+strategy, and see whether it beats your "first legal move" AI.
 
 ### Interlude: Game Trees
 
 To make your AI smarter, it is a good idea for it to look into the
 future and consider responses to its moves, its responses to those
 responses, and so on. The lecture on game trees may help you here.
+
+{:.msg-warn}
+It is possible for one player to make two moves in a row, if the
+opponent has no legal move. Therefore, it is not safe to assume that
+each layer of the game tree is scored for opposing players.
 
 ### Minimax
 
@@ -368,24 +354,29 @@ likely give better performance than a greedy strategy.
 Once you have Minimax working, you may find that your AI exploring a
 number of options that cannot possibly influence the result. Cutting
 off branches of the search space early is called _pruning_, and one
-effective method of pruning is called **alpha-beta pruning** as
-discussed in lectures. Good pruning may allow your search to explore
-deeper within the time limit it has to make its move.
+effective method of pruning is called
+
+ [Alpha-Beta
+Pruning](https://cs.anu.edu.au/courses/comp1100/lectures/09-2-Alpha_Beta.pdf),
+which was discussed in lectures (is this still current?)
+
+Good pruning may allow your search to
+explore deeper within the time limit it has to make its move.
 
 ### Other Hints
 
 * There are four main ways your AI can be made smarter:
 
-  - Look-ahead: If your function runs efficiently, it can see further
+  - Lookahead: If your function runs efficiently, it can see further
     into the future before it runs out of time. The more moves into
     the future it looks, the more likely it will find good moves that
-    are not immediately obvious. Example: at 1 level of look-ahead, a
-    move may let you capture a lot of pieces, but at deeper look-ahead
+    are not immediately obvious. Example: at 1 level of lookahead, a
+    move may let you capture a lot of dics, but at deeper lookahead
     you might see that it leaves you open to a large counter-capture.
 
   - Heuristic: You will not have time to look all the way to the end
     of every possible game. Your heuristic function guesses how good a
-    `Game` is for each player. If your heuristic is accurate, it will
+    `GameState` is for each player. If your heuristic is accurate, it will
     correctly identify strong and weak states.
 
   - Search Strategy: This determines how your AI decides which
@@ -396,7 +387,7 @@ deeper within the time limit it has to make its move.
 
   - Pruning: if you can discard parts of the game tree without
     considering them in detail, you can process game trees faster and
-    achieve a deeper look-ahead in the allotted running
+    acheive a deeper lookahead in the allotted running
     time. Alpha-beta pruning is one example; there are others.
 
 * Choosing a good heuristic function is very important, as it gives
@@ -405,26 +396,32 @@ deeper within the time limit it has to make its move.
   are more valuable than others, when it comes to winning games, and
   so your AI should value them more highly.
 
-* Do not try to do everything at once. This does not work in
-  production code and often does not work in assignment code
-  either. Get something working, then take your improved understanding
-  of the problem to the more complex algorithms.
+* Do not try to do everything at once. This does not work in production
+  code and often does not work in assignment code either. Get something
+  working, then take your improved understanding of the problem to the
+  more complex algorithms.
 
-* As you refine your bots, test them against each other to see whether
+* As you refine your AIs, test them against each other to see whether
   your changes are actually an improvement.
 
+{:.msg-info}
+You may notice that this task is the same for both COMP1100 and COMP1130
+students, but that does not mean they will be marked the same. A COMP1130 
+student can expect their mark out of 65 to be what a COMP1100 student 
+would score out of 55, and - only if their submission exceeds what would score 
+full marks for a COMP1100 submission - a mark above 55/65.
 
 ## Unit Tests (10 Marks)
 
 As with Assignment 2, you will be expected to write unit tests to
 convince yourself that your code is correct. The testing code has been
-extended from last time---`src/Testing.hs` now allows you to group
+extended from last time - `src/Testing.hs` now allows you to group
 tests into a tree structure. As before, you run the tests using `cabal
-v2-test`.
+test`.
 
 ### Your Task
 
-Add tests to `src/AITests.hs` to test your AI.
+Add tests to `src/AITest.hs` that test your AI.
 
 #### Hints
 
@@ -438,6 +435,7 @@ Add tests to `src/AITests.hs` to test your AI.
   about writing tests to ensure those details do not get missed as you
   work on your code.
 
+
 ## Style (10 Marks)
 
 As you write increasingly complex code, it is increasingly important
@@ -449,16 +447,22 @@ solution to it.
 
 Ensure that your code is written in good Haskell style.
 
+## Technical Report (COMP1100: 25 marks, COMP1130: 35 marks)
 
-## Technical Report (25 Marks)
+You should write a concise technical
+report. An excellent report will:
+demonstrate conceptual understanding of all major functions, and how
+they interact when the program as a whole runs; explain your design
+process, including your assumptions, and the reasons behind choices
+you made; discuss how you tested your program, and in particular why
+your tests give you confidence that your code is correct; and be well
+formatted without spelling or grammar errors.
 
-You are to write a concise [technical report]({% link
-_resources/08-reports.md %}) about your assignment.
+The **maximum word count** is **1500** for COMP1100 students, and **2500** for 
+COMP1130 students. This is a *limit*, not a *quota*;
+concise presentation is a virtue.
 
-The **maximum word count** is **1500** words. This is a *limit*, not a
-*quota*; concise presentation is a virtue.
-
-{:.msg-warn}  
+{:.msg-warn}
 Once again: This is not a required word count. They are the **maximum
 number of words** that your marker will read. If you can do it in
 fewer words without compromising the presentation, please do so.
@@ -470,36 +474,31 @@ may not be marked.
 The report must have a **title page** with the following items:
 
 * Your name
-* Your lab time and tutors
+* Your laboratory time and tutor
 * Your university ID
 
 An excellent report will:
-
-* Demonstrate a conceptual understanding of all major functions, and
-  how they interact when the program as a whole runs;
-
-* Explain your design process, including your assumptions, and the
-  reasons behind choices you made;
-
-* Discuss how you tested your program, and in particular why your
-  tests give you confidence that your code is correct; and
-
-* Be well-formatted without spelling or grammar errors.
+  * demonstrate conceptual understanding of all major
+    functions, and how they interact when the program as a whole runs;
+  * explain your design process, including your assumptions, and the reasons
+    behind choices you made;
+  * discuss how you tested your program, and in particular why your tests give
+    you confidence that your code is correct; and
+  * be well formatted without spelling or grammar errors.
 
 ### Content and Structure
 
-Your audience is the tutors and lecturers, who are proficient at
-programming and understand the concepts taught in this course. You
-should not, for example, waste words describing the syntax of Haskell
-or how recursion works. After reading your technical report, the
-reader should thoroughly understand what problem your program is
-trying to solve, the reasons behind major design choices in it, as
-well as how it was tested. Your report should give a broad overview of
-your program, but focus on the specifics of what *you* did and why.
+Your audience is the tutors and lecturers, who are proficient at programming
+and understand most concepts. Therefore you should not, for example, waste
+words describing the syntax of Haskell or how recursion works. After reading
+your technical report, the reader should thoroughly understand what problem
+your program is trying to solve, the reasons behind major design choices in it,
+as well as how it was tested. Your report should give a broad overview of your
+program, but focus on the specifics of what *you* did and why.
 
 Remember that the tutors have access to the above assignment
 specification, and if your report *only* contains details from it then
-you will only receive minimal marks. Below is a potential outline for
+you will only receive minimal marks. Below is an potential outline for
 the structure of your report and some things you might discuss in it.
 
 #### Introduction
@@ -513,8 +512,8 @@ If you wish to do so you can write an introduction. In it, give:
 
 #### Content
 
-Talk about why you structured the program the way you did. Below are
-some questions you could answer:
+Talk about why you structured the program the way you did. Below are some
+questions you could answer:
 
 * Program design
   - Describe what each relevant function does conceptually. (i.e. how
@@ -524,21 +523,22 @@ some questions you could answer:
     program? Why did you design and implement it this way?
   - What major design choices did *you* make regarding the functions
     that *you’ve* written, and the overall structure of your program?
-  - For this assignment, you could ask yourself:
-     - How does your AI select a good move?
-     - What data-structures did you choose and why?
-     - How did you develop the AI that is your main submission?
+
+  - For this assignment specifically, you could also ask yourself:
+    - How does your AI select a good move?
+    - What data structures did you choose, and why?
+    - How did you develop the AI that is your main submission?
 
 * Assumptions
-  - Describe any assumptions that you needed to make, and how they
-    have influenced your design decisions.
+  - Describe assumptions you have made
+    and how this has influenced your design decisions.
 
 * Testing
   - How did you test individual functions?
     - Be specific about this - the tutors know that you have tested
       your program, but they want to know *how*.
     - Describe the tests that prove individual functions on their own
-      behave as expected (i.e. testing a function with different
+      behave as expected (e.g. testing a function with different
       inputs and doing a calculation by hand to check that the outputs
       are correct).
   - How did you test the entire program? What tests did you perform to
@@ -566,10 +566,11 @@ but the process through which you developed the final program:
   - Sometimes limitations on time or technical skills can limit how
     much of the assignment can be completed. If you ran into a problem
     that you could not solve, then your report is the perfect place to
-    describe them. Try to include details such as:
-    - theories as to what caused the problem;
-    - suggestions of things that might have fixed it; and
-    - discussion about what you did try, and the results of these attempts.
+    describe it. You could include details such as:
+
+    - Theories as to what caused the problem;
+    - Suggestions of things that might have fixed it; and
+    - Discussion about what you did try, and the results of these attempts.
 
 * What would you have done differently if you were to do it again?
   - What changes to the design and structure you would make if you
@@ -590,7 +591,7 @@ but the process through which you developed the final program:
     relevant to your process of design - strange or interesting things
     that you noticed and fixed along the way.
 
-{:.msg-info}  
+{:.msg-info}
 This is a list of **suggestions**, not requirements. You should only
 discuss items from this list if you have something interesting to
 write.
@@ -600,14 +601,14 @@ write.
 * Line by line explanations of large portions of code. (If you want to
   include a specific line of code, be sure to format as described in
   the "Format" section below.)
-* Pictures of code or VSCodium.
+* Pictures of code or IntelliJ.
 * Content that is not your own, unless cited.
 * Grammatical errors or misspellings. Proof-read it before submission.
 * Informal language - a technical report is a professional document, and as
   such should avoid things such as:
   - Unnecessary abbreviations (atm, btw, ps, and so on), emojis, and
     emoticons; and
-  - Recounting events not relevant to the development of the program.
+  - Stories / recounts of events not relevant to the development of the program.
 * Irrelevant diagrams, graphs, and charts. Unnecessary elements will
   distract from the important content. Keep it succinct and focused.
 
@@ -648,25 +649,27 @@ Once again, and we cannot stress this enough: **do not post your code
 publicly** . If you need help with your code, post it *privately* to the
 instructors.
 
-When brainstorming with your friends, **do not share code** and **do
-not share detailed descriptions of your design**. There might be
-pressure from your friends, but this is for both your and their
-benefit. Anything that smells of plagiarism will be investigated and
-there may be serious consequences.
+When brainstorming with your friends, **do not share code**. There
+might be pressure from your friends, but this is for both your and
+their benefit. Anything that smells of plagiarism will be investigated
+and there may be serious consequences.
+
+Sharing ideas and sketches is perfectly fine, but sharing should stop
+at ideas.
 
 Course staff will not look at assignment code unless it is posted
-**privately** in Piazza, or in a drop-in consultation.
+**privately** in piazza.
 
 Course staff will typically give assistance by asking questions,
 directing you to relevant exercises from the labs, or definitions and
 examples from the lectures.
 
-{:.msg-info}  
+{:.msg-info}
 Before the assignment is due, course staff will not give individual
 tips on writing functions for the assignment or how your code can be
 improved. We will help you get unstuck by asking questions and
 pointing you to relevant lecture and lab material. You will receive
-feedback on you work when marks are released.
+feedback on your work when marks are released.
 
 
 ## Submission Advice

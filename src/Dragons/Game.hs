@@ -41,7 +41,7 @@ module Dragons.Game
   , forceListWithTimeout
   ) where
 
-import Checkers (Player(..), otherPlayer, Outcome(..), Turn(..))
+import Othello (Player(..), otherPlayer, Outcome(..), Turn(..))
 import Control.DeepSeq (NFData(..), force)
 import Control.Monad.State (StateT, runStateT, get, gets, put)
 import Control.Monad.Trans (lift)
