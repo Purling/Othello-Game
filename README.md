@@ -358,8 +358,7 @@ effective method of pruning is called
 
  [Alpha-Beta
 Pruning](https://cs.anu.edu.au/courses/comp1100/lectures/10-1-Alpha_Beta.pdf),
-which was discussed in lectures (is this still current?)
-
+which was discussed in lectures.
 Good pruning may allow your search to
 explore deeper within the time limit it has to make its move.
 
