@@ -44,41 +44,23 @@ greedyAI (GameState bounds turn board) = case turn of
 -- | A function which uses a heuristic to determine the next best move. The
 -- next best move is decided entirely on immediate score improvement.
 greedyHeuristic :: [Move] -> GameState -> Move
-greedyHeuristic [] _ = Move (9,9)
+greedyHeuristic [] _ = Move (9,9) -- Techincally this is cased below
 greedyHeuristic (x:xs) (GameState bounds turn board) = case x:xs of
   [] -> x
   _  -> case turn of
     GameOver _  -> error "greedyAI: Invalid Input (Gameover is invalid)"
     Turn _ -> snd (foldr1 maxTuple (map score tupleList))
   where
+    -- | Returns a list of Maybe GameState given a egal list of moves
     gameStateList :: [Maybe GameState]
     gameStateList = map (applyMove (GameState bounds turn board)) (x:xs)
+    -- | Returns a list of (Maybe GameState, Move) given [Maybe GameState]
+    -- and [Move]
     tupleList :: [(Maybe GameState, Move)]
     tupleList = zip gameStateList (x:xs)
 
-
-compare :: Board -> Player -> Int
-compare board player = max (currentScore board player) 0
-
--- (map ((applyMove (GameState bounds turn board)) (x:xs))) 
--- Gives out a list of Maybe GameState
-
--- map score (map ((applyMove (GameState bounds turn board)) (x:xs)))
--- Returns a list of scores
-
--- Gives out a tuple of lists given a list and another list
--- zip (map (applyMove (initialState (8,8))) li) li
-
--- Turns a Maybe GameState list into a list of ints
--- score :: Maybe GameState -> Int
--- score gameState = case gameState of
---   (Just (GameState _ turn board)) -> 
---     case turn of
---       GameOver _  -> error "greedyAI: Invalid Input (Gameover is invalid)"
---       Turn player -> currentScore board player
---   _ -> -1
-
 -- Turns a tuple Maybe GameState list into a list of ints and moves
+-- Maybe rename this function
 score :: (Maybe GameState, Move) -> (Int, Move)
 score (gameState,move) = case gameState of
   (Just (GameState _ turn board)) ->
@@ -93,6 +75,7 @@ maxTuple (a,b) (c,d)
   | a > c = (a,b)
   | otherwise = (c,d)
 
+-- | An example of a list of moves for testing
 li :: [Move]
 li = [Move (3,2), Move (2,3), Move (3,3)]
 
@@ -102,3 +85,12 @@ li = [Move (3,2), Move (2,3), Move (3,3)]
 -- Gives out a list of (int, move)
 -- foldr max' (0,Move (1,1)) (map score' zip (map (applyMove (initialState (8,8))) li) li))
 -- Gives out the tuple which has the most score advantage (Score, Move)
+
+-- (map ((applyMove (GameState bounds turn board)) (x:xs))) 
+-- Gives out a list of Maybe GameState
+
+-- map score (map ((applyMove (GameState bounds turn board)) (x:xs)))
+-- Returns a list of scores
+
+-- Gives out a tuple of lists given a list and another list
+-- zip (map (applyMove (initialState (8,8))) li) li
