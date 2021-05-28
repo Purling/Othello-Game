@@ -121,7 +121,7 @@ initialBoard' (bx, by) = map makeRow [0..by-1]
 -- | Remember to create a function which returns the original player to convertLeaves
 minMaxAI :: GameState -> Move
 minMaxAI gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
-minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 11 (convertLeaves player (othelloTree' (0,3) gameState))))
+minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree' (0,4) gameState))))
   
 -- minMaxAI :: GameState -> Int -> Move
 -- minMaxAI gameState depth = getMove gameState depth --(getBest (repeat' depth (convertLeaves (othelloTree' (0,depth) gameState))))
@@ -139,16 +139,16 @@ getBest :: Rose (Maybe Int, GameState) -> Int
 getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
   where
     bestMove :: [(Rose (Maybe Int, GameState),Int)] -> Int
-    bestMove [((Rose (int,_) _),count)] = count
-    bestMove (((Rose (int,_) _),count):[((Rose (score,_) _),count1)])
-      | int >= score = count 
+    bestMove [(_,count)] = count
+    bestMove (((Rose (int,_) _),count):[((Rose (counter,_) _),count1)])
+      | int >= counter = count 
       | otherwise = count1
-    bestMove (x@((Rose (int,_) _),count):y@((Rose (score,_) _),count1):xs) = case null(xs) of
+    bestMove (x@((Rose (int,_) _),count):y@((Rose (counter,_) _),count1):xs) = case null(xs) of
       True 
-        | int >= score -> bestMove (x:xs) 
+        | int >= counter -> bestMove (x:xs) 
         | otherwise -> bestMove (y:xs)
       False 
-        | int >= score -> count 
+        | int >= counter -> count 
         | otherwise -> count1
 
 repeat' :: Player -> Int -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
@@ -187,18 +187,49 @@ comparison player (x:xs) = case x of
 
 -- (int,gameState@(GameState _ turn _))
 
+corner :: Player -> Board -> Int
+corner player board 
+    | corners == (Just player, Just player, Just player, Just player) = 4
+    | corners == (Nothing, Just player, Just player, Just player) = 3
+    | corners == (Just player, Nothing, Just player, Just player) = 3
+    | corners == (Just player, Just player, Nothing, Just player) = 3
+    | corners == (Just player, Just player, Just player, Nothing) = 3
+    | corners == (Nothing, Nothing, Just player, Just player) = 2
+    | corners == (Nothing, Just player, Nothing, Just player) = 2
+    | corners == (Nothing, Just player, Just player, Nothing) = 2
+    | corners == (Just player, Nothing, Nothing, Just player) = 2
+    | corners == (Just player, Nothing, Just player, Nothing) = 2
+    | corners == (Just player, Just player, Nothing, Nothing) = 2
+    | corners == (Just player, Nothing, Nothing, Nothing) = 1
+    | corners == (Nothing, Just player, Nothing, Nothing) = 1
+    | corners == (Nothing, Nothing, Just player, Nothing) = 1
+    | corners == (Nothing, Nothing, Nothing, Just player) = 1
+    | otherwise = 0
+  where
+    gameState = GameState (8,8) (Turn player) board
+    corners = (  pieceAt gameState (0,0)
+                 , pieceAt gameState (7,0)
+                 , pieceAt gameState (0,7)
+                 , pieceAt gameState (7,7))
+
 -- | Rose tree for testing purposes
 testRose :: Rose Int
-testRose = Rose 5 [Rose 3 [Rose 1 [], Rose 4 []], Rose 7 [], Rose 4 []]
+testRose = Rose 5 [Rose 3 [Rose 1 [], Rose 4 []], Rose 7 [], Rose 4 []]  
 
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
-returnScore player board = 100 * (maxie - minie) `div` (maxie + minie)
+returnScore player board
+  | minieLength + maxieLength /= 0 = 80*((maxieLength - minieLength) `div` (maxieLength + minieLength))
+    + 20 * (maxie - minie) `div` (maxie + minie) + 200*corner player board
+  | otherwise = 20 * (maxie - minie) `div` (maxie + minie) + 200*corner player board
   where
     minie = currentScore board (otherPlayer player)
     maxie = currentScore board player
+    minieLength = length (legalMoves (GameState (8,8) (Turn (otherPlayer player)) board))
+    maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
 
 -- (repeat' (Player1) 11 (convertLeaves (Player1) (othelloTree' (0,3) (initialState (4,4))))))
+-- (repeat' (Player1) 3 (convertLeaves (Player1) (othelloTree' (0,3) (initialState (8,8)))))
 
 -- | A function which determines the most optimal move using minmax techniques
 -- given GameState and how many layers to check
