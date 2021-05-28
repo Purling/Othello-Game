@@ -121,7 +121,7 @@ initialBoard' (bx, by) = map makeRow [0..by-1]
 -- | Remember to create a function which returns the original player to convertLeaves
 minMaxAI :: GameState -> Move
 minMaxAI gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
-minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 6 (convertLeaves player (othelloTree' (0,3) gameState))))
+minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 11 (convertLeaves player (othelloTree' (0,3) gameState))))
   
 -- minMaxAI :: GameState -> Int -> Move
 -- minMaxAI gameState depth = getMove gameState depth --(getBest (repeat' depth (convertLeaves (othelloTree' (0,depth) gameState))))
@@ -177,12 +177,12 @@ comparison _ [] = 0
 comparison _ [(int,_)] = int
 comparison player (x:xs) = case x of
   (int,GameState _ (Turn play) _)
-   | player == play -> max int (comparison player xs)
-   | otherwise -> min int (comparison player xs)
+   | player == play -> min int (comparison player xs)
+   | otherwise -> max int (comparison player xs)
     --Are the below ever hit?
   (_, GameState _ (GameOver (Winner play)) _) 
-    | player == play -> max 65 (comparison player xs)
-    | otherwise -> min 65 (comparison player xs)
+    | player == play -> min 65 (comparison player xs)
+    | otherwise -> max 65 (comparison player xs)
   (_, GameState _ (GameOver Draw) _) -> max (-65) (comparison player xs)
 
 -- (int,gameState@(GameState _ turn _))
@@ -193,11 +193,12 @@ testRose = Rose 5 [Rose 3 [Rose 1 [], Rose 4 []], Rose 7 [], Rose 4 []]
 
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
-returnScore player board
-  | player == Player1 = playerScore
-  | otherwise = -playerScore
-   where
-    playerScore = currentScore board Player1 - currentScore board Player2
+returnScore player board = 100 * (maxie - minie) `div` (maxie + minie)
+  where
+    minie = currentScore board (otherPlayer player)
+    maxie = currentScore board player
+
+-- (repeat' (Player1) 11 (convertLeaves (Player1) (othelloTree' (0,3) (initialState (4,4))))))
 
 -- | A function which determines the most optimal move using minmax techniques
 -- given GameState and how many layers to check
