@@ -1,2 +1,2 @@
-Play on server:no
-Play publicly:no
+Play on server:yes
+Play publicly:yes
