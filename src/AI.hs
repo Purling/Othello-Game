@@ -118,8 +118,10 @@ initialBoard' (bx, by) = map makeRow [0..by-1]
       | pos == (2,2) = Just Player1
       | otherwise = Nothing
 
+-- | Remember to create a function which returns the original player to convertLeaves
 minMaxAI :: GameState -> Move
-minMaxAI gameState = getMove gameState (getBest (repeat' 6 (convertLeaves (othelloTree' (0,3) gameState))))
+minMaxAI gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
+minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 6 (convertLeaves player (othelloTree' (0,3) gameState))))
   
 -- minMaxAI :: GameState -> Int -> Move
 -- minMaxAI gameState depth = getMove gameState depth --(getBest (repeat' depth (convertLeaves (othelloTree' (0,depth) gameState))))
@@ -149,39 +151,39 @@ getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
         | int >= score -> count 
         | otherwise -> count1
 
-repeat' :: Int -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
-repeat' depth rTree = case depth of
-  2 -> minMaxHeuristic (0,2) rTree
-  _ -> repeat' (depth-1) (minMaxHeuristic (0,depth) rTree)
+repeat' :: Player -> Int -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
+repeat' player depth rTree = case depth of
+  2 -> minMaxHeuristic player (0,2) rTree
+  _ -> repeat' player (depth-1) (minMaxHeuristic player (0,depth) rTree)
 
 -- | Returns a game tree with leaves converted by heuristic function
-convertLeaves :: Rose GameState -> Rose (Maybe Int,GameState)
-convertLeaves rTree@(Rose gameState _) = case rTree of
-  Rose (GameState _ (Turn player) board) [] -> Rose (Just (returnScore player board),gameState) []
-  Rose (GameState _ (GameOver (Winner player)) board) [] -> Rose (Just (returnScore player board),gameState) []
-  Rose _ rose -> Rose (Nothing,gameState) (map convertLeaves rose)
+convertLeaves :: Player -> Rose GameState -> Rose (Maybe Int,GameState)
+convertLeaves player rTree@(Rose gameState _) = case rTree of
+  Rose (GameState _ _ board) [] -> Rose (Just (returnScore player board),gameState) []
+  Rose _ rose -> Rose (Nothing,gameState) (map (convertLeaves player) rose)
 
 -- | Heuristic function for MinMax
-minMaxHeuristic :: (Int,Int) -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
-minMaxHeuristic (acc,depth) (Rose (_,gameState) list)
+minMaxHeuristic :: Player -> (Int,Int) -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
+minMaxHeuristic player (acc,depth) (Rose (_,gameState) list)
   | (acc == 0) && (0== depth) = Rose (Nothing,gameState) []
-  | acc < (depth -1) = Rose (Nothing,gameState) (map (minMaxHeuristic (acc+1,depth)) list)
-  | otherwise = Rose  (Just (comparison (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
+  | acc < (depth -1) = Rose (Nothing,gameState) (map (minMaxHeuristic player (acc+1,depth)) list)
+  | otherwise = Rose (Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
 
 -- convertLeaves (othelloTree' (0,3) (initialState (8,8)))
 
-comparison :: [(Int, GameState)] -> Int
-comparison [] = 0
-comparison [(int,_)] = int
-comparison (x:xs) = case x of
-  (int,GameState _ (Turn player) _) -> case player of
-    Player2 -> max int (comparison xs)
-    Player1 -> min int (comparison xs)
+-- | Case player in this.
+comparison :: Player -> [(Int, GameState)] -> Int
+comparison _ [] = 0
+comparison _ [(int,_)] = int
+comparison player (x:xs) = case x of
+  (int,GameState _ (Turn play) _)
+   | player == play -> max int (comparison player xs)
+   | otherwise -> min int (comparison player xs)
     --Are the below ever hit?
-  (_, GameState _ (GameOver (Winner player)) _) -> case player of
-    Player2 -> max 65 (comparison xs)
-    Player1 -> error "hit comparison" --min 65 (comparison xs)
-  (_, GameState _ (GameOver Draw) _) -> max (-65) (comparison xs)
+  (_, GameState _ (GameOver (Winner play)) _) 
+    | player == play -> max 65 (comparison player xs)
+    | otherwise -> min 65 (comparison player xs)
+  (_, GameState _ (GameOver Draw) _) -> max (-65) (comparison player xs)
 
 -- (int,gameState@(GameState _ turn _))
 
@@ -192,7 +194,7 @@ testRose = Rose 5 [Rose 3 [Rose 1 [], Rose 4 []], Rose 7 [], Rose 4 []]
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
 returnScore player board
-  | player == Player2 = playerScore
+  | player == Player1 = playerScore
   | otherwise = -playerScore
    where
     playerScore = currentScore board Player1 - currentScore board Player2
