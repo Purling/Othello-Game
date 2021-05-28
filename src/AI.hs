@@ -23,7 +23,7 @@ data AIFunc
 ais :: [(String, AIFunc)]
 ais = [ ("firstLegalMove", NoLookahead firstLegalMove),
         ("greedyStrategy", NoLookahead greedyAI),
-        ("minimaxStrategy", NoLookahead minMaxAI)
+        ("default", NoLookahead minMaxAI)
       ]
 
 -- | A very simple AI, which picks the first move returned by the
