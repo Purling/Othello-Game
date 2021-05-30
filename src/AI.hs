@@ -86,7 +86,7 @@ othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) = case m
   _
 --Rose gameState (map (othelloTree (acc+1,depth)) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState)))))
 -- Rose gameState (map (\x -> Rose x []) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState))))
-    | depth == 1 -> Rose gameState (map (\x -> Rose x []) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState))))
+    | depth == 1 -> Rose gameState (map ((`Rose` []) . ((\(Just x) -> x) . applyMove gameState)) (legalMoves gameState))
     | acc < depth -> Rose gameState (map op (legalMoves gameState))
     | otherwise -> Rose gameState []
   where
@@ -98,7 +98,7 @@ othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) = case m
 minMaxAI' :: GameState -> Move
 minMaxAI' gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
 minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree (0,4) gameState))))
-  
+
 minMaxAI :: GameState -> Int -> Move
 minMaxAI gameState@(GameState _ (Turn player) _) 1 = getMove gameState (getBest (convertLeaves player (othelloTree (0,1) gameState)))
 minMaxAI gameState@(GameState _ (GameOver _) _) _ = head (legalMoves gameState)
@@ -111,23 +111,23 @@ getMove gameState = getMove' (zip (legalMoves gameState) [1..64 ::Int])
 getMove' :: [(Move,Int)] -> Int -> Move
 getMove' [] _ = error "Hit Getmove" -- Get rid of this
 getMove' ((move,index):xs) position
-  | index == position = move 
+  | index == position = move
   | otherwise = getMove' xs position
-  
+
 getBest :: Rose (Maybe Int, GameState) -> Int
 getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
   where
     bestMove :: [(Rose (Maybe Int, GameState),Int)] -> Int
     bestMove [(_,count)] = count
     bestMove (((Rose (int,_) _),count):[((Rose (counter,_) _),count1)])
-      | int >= counter = count 
+      | int >= counter = count
       | otherwise = count1
     bestMove (x@((Rose (int,_) _),count):y@((Rose (counter,_) _),count1):xs) = case null(xs) of
-      True 
-        | int >= counter -> bestMove (x:xs) 
+      True
+        | int >= counter -> bestMove (x:xs)
         | otherwise -> bestMove (y:xs)
-      False 
-        | int >= counter -> count 
+      False
+        | int >= counter -> count
         | otherwise -> count1
 
 -- | Rename this function
@@ -157,14 +157,14 @@ comparison player (x:xs) = case x of
   (int,GameState _ (Turn play) _)
    | player == play -> min int (comparison player xs)
    | otherwise -> max int (comparison player xs)
-  (_, GameState _ (GameOver (Winner play)) _) 
+  (_, GameState _ (GameOver (Winner play)) _)
     | player == play -> min 1000000 (comparison player xs)
-    | otherwise -> max 1000000 (comparison player xs)
+    | otherwise -> 1000000
   (_, GameState _ (GameOver Draw) _) -> max (-1000000) (comparison player xs)
 
 -- | Could make the opposition occupied corners negative
 corner :: Player -> Board -> Int
-corner player board 
+corner player board
     | corners == (Just player, Just player, Just player, Just player) = 4
     | corners == (Nothing, Just player, Just player, Just player) = 3
     | corners == (Just player, Nothing, Just player, Just player) = 3
