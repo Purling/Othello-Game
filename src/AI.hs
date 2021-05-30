@@ -181,11 +181,9 @@ comparison player (x:xs) = case x of
    | otherwise -> max int (comparison player xs)
     --Are the below ever hit?
   (_, GameState _ (GameOver (Winner play)) _) 
-    | player == play -> min 65 (comparison player xs)
-    | otherwise -> max 65 (comparison player xs)
-  (_, GameState _ (GameOver Draw) _) -> max (-65) (comparison player xs)
-
--- (int,gameState@(GameState _ turn _))
+    | player == play -> min 1000000 (comparison player xs)
+    | otherwise -> max 1000000 (comparison player xs)
+  (_, GameState _ (GameOver Draw) _) -> max (-1000000) (comparison player xs)
 
 -- | Could make the opposition occupied corners negative
 corner :: Player -> Board -> Int
