@@ -79,49 +79,37 @@ maxTuple (a,b) (c,d)
 data Rose a = Rose a [Rose a]
 
 -- | A game tree for othello generated up to a given depth
-othelloTree' :: (Int,Int) -> GameState -> Rose GameState
-othelloTree' (_,_) gameState@(GameState _ (GameOver _) _) = Rose gameState []
-othelloTree' (acc,depth) gameState@(GameState bound (Turn player) board) = case map (applyMove gameState) (legalMoves gameState) of
+othelloTree :: (Int,Int) -> GameState -> Rose GameState
+othelloTree (_,_) gameState@(GameState _ (GameOver _) _) = Rose gameState []
+othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) = case map (applyMove gameState) (legalMoves gameState) of
   [] -> Rose gameState (map op' (legalMoves opposite))
   _
 --Rose gameState (map (othelloTree (acc+1,depth)) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState)))))
+-- Rose gameState (map (\x -> Rose x []) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState))))
+    | depth == 1 -> Rose gameState (map (\x -> Rose x []) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState))))
     | acc < depth -> Rose gameState (map op (legalMoves gameState))
     | otherwise -> Rose gameState []
   where
-        op = (othelloTree' (acc+1,depth) . (\(Just x) -> x)) . applyMove gameState
-        op' = (othelloTree' (acc+1,depth) . (\(Just x) -> x)) . applyMove opposite
+        op = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove gameState
+        op' = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove opposite
         opposite = GameState bound (Turn (otherPlayer player)) board
-
-testState :: GameState
-testState = GameState (3,3) (Turn Player1) (initialBoard' (3,3))
-
-initialBoard' :: Bounds -> Board
-initialBoard' (bx, by) = map makeRow [0..by-1]
-  where
-    makeRow :: Int -> [Maybe Player]
-    makeRow y = map (\x -> pieceOn (x, y)) [0..bx-1]
-
-    pieceOn :: Position -> Maybe Player
-    pieceOn pos
-      | pos == (0, 1) = Just Player2 
-      | pos == (1,1) = Just Player1
-      | pos == (2,2) = Just Player1
-      | otherwise = Nothing
 
 -- | Remember to create a function which returns the original player to convertLeaves
 minMaxAI' :: GameState -> Move
 minMaxAI' gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
-minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree' (0,4) gameState))))
+minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree (0,4) gameState))))
   
 minMaxAI :: GameState -> Int -> Move
+minMaxAI gameState@(GameState _ (Turn player) _) 1 = getMove gameState (getBest (convertLeaves player (othelloTree (0,1) gameState)))
 minMaxAI gameState@(GameState _ (GameOver _) _) _ = head (legalMoves gameState)
-minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState (getBest (repeat' player depth (convertLeaves player (othelloTree' (0,depth) gameState))))
+minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState (getBest (repeat' player depth (convertLeaves player (othelloTree (0,depth) gameState))))
 
 getMove :: GameState -> Int -> Move
-getMove gameState position = getMove' (zip (legalMoves gameState) [1..64 ::Int]) position
+-- getMove gameState position = getMove' (zip (legalMoves gameState) [1..64 ::Int]) position
+getMove gameState = getMove' (zip (legalMoves gameState) [1..64 ::Int])
 
 getMove' :: [(Move,Int)] -> Int -> Move
-getMove' [] _ = error "Hit Getmove'"
+getMove' [] _ = error "Hit Getmove" -- Get rid of this
 getMove' ((move,index):xs) position
   | index == position = move 
   | otherwise = getMove' xs position
@@ -142,6 +130,7 @@ getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
         | int >= counter -> count 
         | otherwise -> count1
 
+-- | Rename this function
 repeat' :: Player -> Int -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
 repeat' player depth rTree = case depth of
   2 -> minMaxHeuristic player (0,2) rTree
@@ -160,8 +149,6 @@ minMaxHeuristic player (acc,depth) (Rose (_,gameState) list)
   | acc < (depth -1) = Rose (Nothing,gameState) (map (minMaxHeuristic player (acc+1,depth)) list)
   | otherwise = Rose (Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
 
--- convertLeaves (othelloTree' (0,3) (initialState (8,8)))
-
 -- | Case player in this.
 comparison :: Player -> [(Int, GameState)] -> Int
 comparison _ [] = 0
@@ -170,7 +157,6 @@ comparison player (x:xs) = case x of
   (int,GameState _ (Turn play) _)
    | player == play -> min int (comparison player xs)
    | otherwise -> max int (comparison player xs)
-    --Are the below ever hit?
   (_, GameState _ (GameOver (Winner play)) _) 
     | player == play -> min 1000000 (comparison player xs)
     | otherwise -> max 1000000 (comparison player xs)
@@ -238,10 +224,6 @@ corner player board
                  , pieceAt gameState (0,7)
                  , pieceAt gameState (7,7))
 
--- | Rose tree for testing purposes
-testRose :: Rose Int
-testRose = Rose 5 [Rose 3 [Rose 1 [], Rose 4 []], Rose 7 [], Rose 4 []]  
-
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
 returnScore player board
@@ -273,13 +255,6 @@ returnScore player board
 --     maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
 --     minieCorner = corner (otherPlayer player) board
 --     maxieCorner = corner player board
-    
--- (repeat' (Player1) 11 (convertLeaves (Player1) (othelloTree' (0,3) (initialState (4,4))))))
--- (repeat' (Player1) 3 (convertLeaves (Player1) (othelloTree' (0,3) (initialState (8,8)))))
-
--- | A function which determines the most optimal move using minmax techniques
--- given GameState and how many layers to check
--- value :: GameState
 
 -- | Code to show RoseTrees in a nicer manner
 instance Show a => Show (Rose a) where
@@ -290,24 +265,3 @@ instance Show a => Show (Rose a) where
       layout (Rose v children) = show v : concatMap (indent . layout) children
       indent :: [String] -> [String]
       indent = map ("  "++)
-
--- | An example of a list of moves for testing
-li :: [Move]
-li = [Move (3,2), Move (2,3), Move (3,3)]
-
--- Testing function: foldr max (0) (map score (map (applyMove (initialState (8,8))) li))
--- Gives out the max int from a list of ints
--- (map score' zip (map (applyMove (initialState (8,8))) li) li))
--- Gives out a list of (int, move)
--- foldr max' (0,Move (1,1)) (map score' zip (map (applyMove (initialState (8,8))) li) li))
--- Gives out the tuple which has the most score advantage (Score, Move)
--- map (applyMove gameState) legalMove gameState
-
--- (map ((applyMove (GameState bounds turn board)) (x:xs))) 
--- Gives out a list of Maybe GameState
-
--- map score (map ((applyMove (GameState bounds turn board)) (x:xs)))
--- Returns a list of scores
-
--- Gives out a tuple of lists given a list and another list
--- zip (map (applyMove (initialState (8,8))) li) li
