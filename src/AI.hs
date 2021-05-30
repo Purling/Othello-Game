@@ -23,7 +23,8 @@ data AIFunc
 ais :: [(String, AIFunc)]
 ais = [ ("firstLegalMove", NoLookahead firstLegalMove),
         ("greedyStrategy", NoLookahead greedyAI),
-        ("default", NoLookahead minMaxAI)
+        ("default", NoLookahead minMaxAI'),
+        ("minmax", WithLookahead minMaxAI)
       ]
 
 -- | A very simple AI, which picks the first move returned by the
@@ -78,17 +79,6 @@ maxTuple (a,b) (c,d)
 data Rose a = Rose a [Rose a]
 
 -- | A game tree for othello generated up to a given depth
-othelloTree :: (Int,Int) -> GameState -> Rose GameState
-othelloTree (acc,depth) gameState
---Rose gameState (map (othelloTree (acc+1,depth)) (zip (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState)))) (legalMoves gameState))
-  | acc < depth = Rose gameState (map op (legalMoves gameState))
-  | otherwise = Rose gameState []
-    where
-      op = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove gameState
-
--- case applyMove gameState of []
-
--- | A game tree for othello generated up to a given depth
 othelloTree' :: (Int,Int) -> GameState -> Rose GameState
 othelloTree' (_,_) gameState@(GameState _ (GameOver _) _) = Rose gameState []
 othelloTree' (acc,depth) gameState@(GameState bound (Turn player) board) = case map (applyMove gameState) (legalMoves gameState) of
@@ -119,12 +109,13 @@ initialBoard' (bx, by) = map makeRow [0..by-1]
       | otherwise = Nothing
 
 -- | Remember to create a function which returns the original player to convertLeaves
-minMaxAI :: GameState -> Move
-minMaxAI gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
-minMaxAI gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree' (0,4) gameState))))
+minMaxAI' :: GameState -> Move
+minMaxAI' gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
+minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree' (0,4) gameState))))
   
--- minMaxAI :: GameState -> Int -> Move
--- minMaxAI gameState depth = getMove gameState depth --(getBest (repeat' depth (convertLeaves (othelloTree' (0,depth) gameState))))
+minMaxAI :: GameState -> Int -> Move
+minMaxAI gameState@(GameState _ (GameOver _) _) _ = head (legalMoves gameState)
+minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState (getBest (repeat' player depth (convertLeaves player (othelloTree' (0,depth) gameState))))
 
 getMove :: GameState -> Int -> Move
 getMove gameState position = getMove' (zip (legalMoves gameState) [1..64 ::Int]) position
