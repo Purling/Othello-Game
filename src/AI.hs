@@ -23,8 +23,8 @@ data AIFunc
 ais :: [(String, AIFunc)]
 ais = [ ("firstLegalMove", NoLookahead firstLegalMove),
         ("greedyStrategy", NoLookahead greedyAI),
-        ("default", NoLookahead minMaxAI'),
-        ("minmax", WithLookahead minMaxAI)
+        ("minmax", NoLookahead minMaxAI'),
+        ("default", WithLookahead minMaxAI)
       ]
 
 -- | A very simple AI, which picks the first move returned by the
@@ -149,6 +149,32 @@ minMaxHeuristic player (acc,depth) (Rose (_,gameState) list)
   | acc < (depth -1) = Rose (Nothing,gameState) (map (minMaxHeuristic player (acc+1,depth)) list)
   | otherwise = Rose (Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
 
+-- | Heuristic function for MinMax
+startAB :: Player -> (Int,Int,Int) -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,Maybe Int,GameState)
+startAB player (acc,depth,beta) (Rose (_,gameState) list)
+  | (acc == 0) && (0== depth) = Rose (Nothing,Nothing,gameState) []
+  | acc < (depth - 1) = Rose (Nothing,Nothing,gameState) [startAB player (acc+1,depth,beta) (head list)]
+  | otherwise = Rose (alpha,alpha,gameState) []
+    where
+      alpha = Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list))
+
+travelAB :: Player -> Int -> Rose (Maybe Int,GameState) -> Int
+travelAB player travel roseTree@(Rose (_,gameState) list) = case (roseSize roseTree) < travel of
+  False -> travelAB player travel (head list)
+  True
+    | null((\(Rose _ x) -> x) (head(list))) -> (\(Rose (Just x,_) _) -> x) (list!!(travel-1))
+  where
+    alpha = Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list))
+
+-- | Alpha-beta
+aBeta :: Player -> Rose (Maybe Int,Maybe Int, GameState) -> Rose (Maybe Int,Maybe Int, GameState)
+aBeta player (Rose (_,alpha,gameState) list)
+  | null((\(Rose _ x) -> x) (head(list))) = case list of
+    x:y:z:zs 
+      | True -> undefined
+  | not (null(list)) = Rose (Nothing,Nothing,gameState) (map (aBeta player) [head list])
+  | otherwise = undefined
+
 -- | Case player in this.
 comparison :: Player -> [(Int, GameState)] -> Int
 comparison _ [] = 0
@@ -255,6 +281,11 @@ returnScore player board
 --     maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
 --     minieCorner = corner (otherPlayer player) board
 --     maxieCorner = corner player board
+
+roseSize :: Rose a -> Int
+roseSize rTree = case rTree of
+  Rose _ [] -> 1
+  Rose a (x:xs) -> roseSize x + roseSize (Rose a xs)
 
 -- | Code to show RoseTrees in a nicer manner
 instance Show a => Show (Rose a) where
