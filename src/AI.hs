@@ -123,7 +123,7 @@ getMove gameState = getMove' (zip (legalMoves gameState) [1..64 ::Int])
 
 -- | Helper function which generates the best move according to ranking
 getMove' :: [(Move,Int)] -> Int -> Move
-getMove' [] _ = error "Hit Getmove" -- Get rid of this
+getMove' [] _ = Move (9,9)
 getMove' ((move,index):xs) position
   | index == position = move
   | otherwise = getMove' xs position
