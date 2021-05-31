@@ -18,7 +18,9 @@ aiTests = TestGroup "AI"
     minMaxAITest,
     getMoveTest,
     getMove'Test,
-    depthRepeatTest
+    depthRepeatTest,
+    convertLeavesTest,
+    minMaxHeuristicTest
 
   ]
 
@@ -47,19 +49,26 @@ getBestTest = undefined
 
 depthRepeatTest :: Test
 depthRepeatTest = Test "depthRepeat"
-  (assertNotEqual (roseFlatten(depthRepeat Player1 2 (convertLeaves (Player1)
+  (assertNotEqual (roseFlatten(depthRepeat Player1 2 (convertLeaves Player1
   (othelloTree (0,2) (initialState (8,8))))))
   (roseFlatten(convertLeaves Player2 (othelloTree (0,3) (initialState (8,8))))))
 
 convertLeavesTest :: Test
 convertLeavesTest = Test "convertLeaves"
-  (assertNotEqual () ())
+  (assertNotEqual (roseFlatten(convertLeaves Player1
+  (othelloTree (0,2) (initialState (8,8)))))
+  (roseFlatten(convertLeaves Player2 (othelloTree (0,3) (initialState (8,8))))))
 
 minMaxHeuristicTest :: Test
-minMaxHeuristicTest = undefined
+minMaxHeuristicTest = Test "minMaxHeuristic"
+  (assertEqual ((roseFlatten(depthRepeat Player1 2 (convertLeaves Player1
+  (othelloTree (0,1) (initialState (8,8))))))) 
+  (roseFlatten(minMaxHeuristic (Player1) (0,1) (convertLeaves Player1
+  (othelloTree (0,1) (initialState (8,8)))))))
 
 comparisonTest :: Test
-comparisonTest = undefined
+comparisonTest = Test "comparison"
+  (assertEqual (comparison Player1 ) ())
 
 cornerTest :: Test
 cornerTest = Test "corner"
