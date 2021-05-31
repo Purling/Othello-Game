@@ -19,8 +19,7 @@ aiTests = TestGroup "AI"
     getMoveTest,
     getMove'Test,
     depthRepeatTest,
-    convertLeavesTest,
-    minMaxHeuristicTest
+    comparisonTest
 
   ]
 
@@ -44,31 +43,16 @@ getMove'Test = Test "getMove'"
   (assertEqual (getMove' [(Move (1,1),1),(Move (2,3),2),(Move (2,3),3)] 2)
   (Move (2,3)))
 
-getBestTest :: Test
-getBestTest = undefined
-
 depthRepeatTest :: Test
 depthRepeatTest = Test "depthRepeat"
   (assertNotEqual (roseFlatten(depthRepeat Player1 2 (convertLeaves Player1
   (othelloTree (0,2) (initialState (8,8))))))
   (roseFlatten(convertLeaves Player2 (othelloTree (0,3) (initialState (8,8))))))
 
-convertLeavesTest :: Test
-convertLeavesTest = Test "convertLeaves"
-  (assertNotEqual (roseFlatten(convertLeaves Player1
-  (othelloTree (0,2) (initialState (8,8)))))
-  (roseFlatten(convertLeaves Player2 (othelloTree (0,3) (initialState (8,8))))))
-
-minMaxHeuristicTest :: Test
-minMaxHeuristicTest = Test "minMaxHeuristic"
-  (assertEqual ((roseFlatten(depthRepeat Player1 2 (convertLeaves Player1
-  (othelloTree (0,1) (initialState (8,8))))))) 
-  (roseFlatten(minMaxHeuristic (Player1) (0,1) (convertLeaves Player1
-  (othelloTree (0,1) (initialState (8,8)))))))
-
 comparisonTest :: Test
 comparisonTest = Test "comparison"
-  (assertEqual (comparison Player1 ) ())
+  (assertEqual (comparison Player1 [(1,initialStateBig),(1,(GameState (8,8) 
+  (GameOver (Winner Player1)) initialBoardBig))]) (1))
 
 cornerTest :: Test
 cornerTest = Test "corner"
@@ -76,7 +60,9 @@ cornerTest = Test "corner"
    2)
 
 returnScoreTest :: Test
-returnScoreTest = undefined
+returnScoreTest = Test "returnScore"
+  (assertNotEqual (returnScore (Player1) initialBoardBig) 
+  (returnScore (Player2) initialBoardBig))
 
 cornerTestState :: GameState
 cornerTestState = GameState (8,8) (Turn Player1) board
