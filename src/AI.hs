@@ -66,7 +66,6 @@ greedyHeuristic (x:xs) gameState@(GameState _ turn _) = case turn of
     tupleList = zip gameStateList (x:xs)
 
 -- Turns a tuple Maybe GameState list into a list of ints and moves
--- Maybe rename this function
 score :: (Maybe GameState, Move) -> (Int, Move)
 score (gameState,move) = case gameState of
   (Just (GameState _ turn board)) ->
@@ -100,32 +99,36 @@ othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) =
       op' = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove opposite
       opposite = GameState bound (Turn (otherPlayer player)) board
 
--- | Remember to create a function which returns the original player to convertLeaves
+-- | MM AI that only has lookahead to a certain degree
 minMaxAI' :: GameState -> Move
 minMaxAI' gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
 minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState
-  (getBest (repeat' player 4 originalTree))
+  (getBest (depthRepeat player 4 originalTree))
   where
     originalTree = convertLeaves player (othelloTree (0,4) gameState)
 
+-- | MM AI which has lookahead until time limit is up
 minMaxAI :: GameState -> Int -> Move
 minMaxAI gameState@(GameState _ (Turn player) _) 1 = getMove gameState
   (getBest (convertLeaves player (othelloTree (0,1) gameState)))
 minMaxAI gameState@(GameState _ (GameOver _) _) _ = head (legalMoves gameState)
 minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState
-  (getBest (repeat' player depth originalTree))
+  (getBest (depthRepeat player depth originalTree))
   where
     originalTree = convertLeaves player (othelloTree (0,depth) gameState)
 
+-- | Function which returns the best move from a list of moves
 getMove :: GameState -> Int -> Move
 getMove gameState = getMove' (zip (legalMoves gameState) [1..64 ::Int])
 
+-- | Helper function which generates the best move according to ranking
 getMove' :: [(Move,Int)] -> Int -> Move
 getMove' [] _ = error "Hit Getmove" -- Get rid of this
 getMove' ((move,index):xs) position
   | index == position = move
   | otherwise = getMove' xs position
 
+-- | Returns the position of the best move in a list
 getBest :: Rose (Maybe Int, GameState) -> Int
 getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
   where
@@ -144,12 +147,12 @@ getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
         | int >= counter -> count
         | otherwise -> count1
 
--- | Rename this function
-repeat' :: Player -> Int -> Rose (Maybe Int,GameState) ->
+-- | Function which recurses a leaf value up a tree depth by depth
+depthRepeat :: Player -> Int -> Rose (Maybe Int,GameState) ->
    Rose (Maybe Int,GameState)
-repeat' player depth rTree = case depth of
+depthRepeat player depth rTree = case depth of
   2 -> minMaxHeuristic player (0,2) rTree
-  _ -> repeat' player (depth-1) (minMaxHeuristic player (0,depth) rTree)
+  _ -> depthRepeat player (depth-1) (minMaxHeuristic player (0,depth) rTree)
 
 -- | Returns a game tree with leaves converted by heuristic function
 convertLeaves :: Player -> Rose GameState -> Rose (Maybe Int,GameState)
@@ -168,7 +171,8 @@ minMaxHeuristic player (acc,depth) (Rose (_,gameState) list)
   | otherwise = Rose (Just (comparison player 
     (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
 
--- | Case player in this.
+-- | Function which generates the value most likely to be choosen from a 
+-- gametree depth based on player
 comparison :: Player -> [(Int, GameState)] -> Int
 comparison _ [] = 0
 comparison _ [(int,_)] = int
@@ -181,61 +185,44 @@ comparison player (x:xs) = case x of
     | otherwise -> 1000000
   (_, GameState _ (GameOver Draw) _) -> max (-1000000) (comparison player xs)
 
--- | Could make the opposition occupied corners negative
+-- | Function which calculates how many corners are occuppied and returns a 
+-- value to score the amount of corners occupied
 corner :: Player -> Board -> Int
-corner player board
-    | corners == (Just player, Just player, Just player, Just player) = 4
-    | corners == (Nothing, Just player, Just player, Just player) = 3
-    | corners == (Just player, Nothing, Just player, Just player) = 3
-    | corners == (Just player, Just player, Nothing, Just player) = 3
-    | corners == (Just player, Just player, Just player, Nothing) = 3
-    | corners == (Nothing, Nothing, Just player, Just player) = 2
-    | corners == (Nothing, Just player, Nothing, Just player) = 2
-    | corners == (Nothing, Just player, Just player, Nothing) = 2
-    | corners == (Just player, Nothing, Nothing, Just player) = 2
-    | corners == (Just player, Nothing, Just player, Nothing) = 2
-    | corners == (Just player, Just player, Nothing, Nothing) = 2
-    | corners == (Just player, Nothing, Nothing, Nothing) = 1
-    | corners == (Nothing, Just player, Nothing, Nothing) = 1
-    | corners == (Nothing, Nothing, Just player, Nothing) = 1
-    | corners == (Nothing, Nothing, Nothing, Just player) = 1
-    | otherwise = 0
-
--- corner player board = case player of 
---   Player1 -> case corners of
---     (Just Player1, Just Player1, Just Player1, Just Player1) -> 4
---     (_, Just Player1, Just Player1, Just Player1) -> 3
---     (Just Player1, _, Just Player1, Just Player1) -> 3
---     (Just Player1, Just Player1, _, Just Player1) -> 3
---     (Just Player1, Just Player1, Just Player1, _) -> 3
---     (_, _, Just Player1, Just Player1) -> 2
---     (_, Just Player1, _, Just Player1) -> 2
---     (_, Just Player1, Just Player1, _) -> 2
---     (Just Player1, _, _, Just Player1) -> 2
---     (Just Player1, _, Just Player1, _) -> 2
---     (Just Player1, Just Player1, _, _) -> 2
---     (Just Player1, _, _, _) -> 1
---     (_, Just Player1, _, _) -> 1
---     (_, _, Just Player1, _) -> 1
---     (_, _, _, Just Player1) -> 1
---     _ -> 0
---   _ -> case corners of
---     (Just Player2, Just Player2, Just Player2, Just Player2) -> 4
---     (_, Just Player2, Just Player2, Just Player2) -> 3
---     (Just Player2, _, Just Player2, Just Player2) -> 3
---     (Just Player2, Just Player2, _, Just Player2) -> 3
---     (Just Player2, Just Player2, Just Player2, _) -> 3
---     (_, _, Just Player2, Just Player2) -> 2
---     (_, Just Player2, _, Just Player2) -> 2
---     (_, Just Player2, Just Player2, _) -> 2
---     (Just Player2, _, _, Just Player2) -> 2
---     (Just Player2, _, Just Player2, _) -> 2
---     (Just Player2, Just Player2, _, _) -> 2
---     (Just Player2, _, _, _) -> 1
---     (_, Just Player2, _, _) -> 1
---     (_, _, Just Player2, _) -> 1
---     (_, _, _, Just Player2) -> 1
---     _ -> 0
+corner player board = case player of 
+  Player1 -> case corners of
+    (Just Player1, Just Player1, Just Player1, Just Player1) -> 4
+    (_, Just Player1, Just Player1, Just Player1) -> 3
+    (Just Player1, _, Just Player1, Just Player1) -> 3
+    (Just Player1, Just Player1, _, Just Player1) -> 3
+    (Just Player1, Just Player1, Just Player1, _) -> 3
+    (_, _, Just Player1, Just Player1) -> 2
+    (_, Just Player1, _, Just Player1) -> 2
+    (_, Just Player1, Just Player1, _) -> 2
+    (Just Player1, _, _, Just Player1) -> 2
+    (Just Player1, _, Just Player1, _) -> 2
+    (Just Player1, Just Player1, _, _) -> 2
+    (Just Player1, _, _, _) -> 1
+    (_, Just Player1, _, _) -> 1
+    (_, _, Just Player1, _) -> 1
+    (_, _, _, Just Player1) -> 1
+    _ -> 0
+  _ -> case corners of
+    (Just Player2, Just Player2, Just Player2, Just Player2) -> 4
+    (_, Just Player2, Just Player2, Just Player2) -> 3
+    (Just Player2, _, Just Player2, Just Player2) -> 3
+    (Just Player2, Just Player2, _, Just Player2) -> 3
+    (Just Player2, Just Player2, Just Player2, _) -> 3
+    (_, _, Just Player2, Just Player2) -> 2
+    (_, Just Player2, _, Just Player2) -> 2
+    (_, Just Player2, Just Player2, _) -> 2
+    (Just Player2, _, _, Just Player2) -> 2
+    (Just Player2, _, Just Player2, _) -> 2
+    (Just Player2, Just Player2, _, _) -> 2
+    (Just Player2, _, _, _) -> 1
+    (_, Just Player2, _, _) -> 1
+    (_, _, Just Player2, _) -> 1
+    (_, _, _, Just Player2) -> 1
+    _ -> 0
   where
     gameState = GameState (8,8) (Turn player) board
     corners = (  pieceAt gameState (0,0)
@@ -246,42 +233,26 @@ corner player board
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
 returnScore player board
-  | minieLength + maxieLength /= 0 = 80*((maxieLength - minieLength) 
-    `div` (maxieLength + minieLength))
-    + 20 * (maxie - minie) `div` (maxie + minie) + 200*corner player board
+  | minieLength + maxieLength /= 0 && maxieCorner + minieCorner /= 0 =
+    200*((maxieLength - minieLength) `div` (maxieLength + minieLength))
+    + 20 * (maxie - minie) `div` (maxie + minie) 
+    + 800 * (maxieCorner - minieCorner) `div` (maxieCorner + minieCorner)
+  | maxieCorner + minieCorner /= 0 =
+    80 * (maxieCorner - minieCorner) `div` (maxieCorner + minieCorner)
+    + 20 * (maxie - minie) `div` (maxie + minie)
+  | minieLength + maxieLength /= 0 = 
+    200*((maxieLength - minieLength) `div` (maxieLength + minieLength))
+    + 20 * (maxie - minie) `div` (maxie + minie)
   | otherwise = 20 * (maxie - minie) `div` (maxie + minie) 
-  + 200*corner player board
+    + 80*corner player board
   where
     minie = currentScore board (otherPlayer player)
     maxie = currentScore board player
     minieLength = length (legalMoves (GameState (8,8) 
       (Turn (otherPlayer player)) board))
     maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
-
--- returnScore player board
---   | minieLength + maxieLength /= 0 && maxieCorner + minieCorner /= 0 =
---     200*((maxieLength - minieLength) `div` (maxieLength + minieLength))
---     + 20 * (maxie - minie) `div` (maxie + minie) 
---     + 800 * (maxieCorner - minieCorner) `div` (maxieCorner + minieCorner)
---   | maxieCorner + minieCorner /= 0 =
---     80 * (maxieCorner - minieCorner) `div` (maxieCorner + minieCorner)
---     + 20 * (maxie - minie) `div` (maxie + minie)
---   | minieLength + maxieLength /= 0 = 
---     200*((maxieLength - minieLength) `div` (maxieLength + minieLength))
---     + 20 * (maxie - minie) `div` (maxie + minie)
---   | otherwise = 20 * (maxie - minie) `div` (maxie + minie) + 80*corner player board
---   where
---     minie = currentScore board (otherPlayer player)
---     maxie = currentScore board player
---     minieLength = length (legalMoves (GameState (8,8) (Turn (otherPlayer player)) board))
---     maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
---     minieCorner = corner (otherPlayer player) board
---     maxieCorner = corner player board
-
-roseSize :: Rose a -> Int
-roseSize rTree = case rTree of
-  Rose _ [] -> 1
-  Rose a (x:xs) -> roseSize x + roseSize (Rose a xs)
+    minieCorner = corner (otherPlayer player) board
+    maxieCorner = corner player board
 
 -- | Code to show RoseTrees in a nicer manner
 instance Show a => Show (Rose a) where
