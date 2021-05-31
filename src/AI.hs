@@ -8,6 +8,9 @@ module AI where
 
 import Othello
 
+-- | Definition of a rose tree
+data Rose a = Rose a [Rose a]
+
 -- | Type of AI functions you can choose to write.
 data AIFunc
   = NoLookahead (GameState -> Move)
@@ -27,12 +30,16 @@ ais = [ ("firstLegalMove", NoLookahead firstLegalMove),
         ("default", WithLookahead minMaxAI)
       ]
 
+-- | First predefined AI
+
 -- | A very simple AI, which picks the first move returned by the
 -- 'legalMoves' function. AIs can rely on the 'legalMoves' list being
 -- non-empty; if there were no legal moves, the framework would have
 -- ended the game.
 firstLegalMove :: GameState -> Move
 firstLegalMove st = head (legalMoves st)
+
+-- | AI which has no lookahead and is purely greedy based on coin parity
 
 -- | A greedy AI with greediness based completely on the most pieces that can
 -- be captured on the next available move.
@@ -41,7 +48,6 @@ greedyAI (GameState bounds turn board) = case turn of
   GameOver _ -> error "greedyAI: Invalid Input (Gameover is invalid)"
   _          -> greedyHeuristic (legalMoves (GameState bounds turn board))
                  (GameState bounds turn board)
-
 
 -- | A function which uses a heuristic to determine the next best move. The
 -- next best move is decided entirely on immediate score improvement.
@@ -75,37 +81,43 @@ maxTuple (a,b) (c,d)
   | a > c = (a,b)
   | otherwise = (c,d)
 
--- | Definition of a rose tree
-data Rose a = Rose a [Rose a]
+-- | MM AI for Othello with more sophisticated heuristics
 
 -- | A game tree for othello generated up to a given depth
 othelloTree :: (Int,Int) -> GameState -> Rose GameState
 othelloTree (_,_) gameState@(GameState _ (GameOver _) _) = Rose gameState []
-othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) = case map (applyMove gameState) (legalMoves gameState) of
+othelloTree (acc,depth) gameState@(GameState bound (Turn player) board) =
+  case map (applyMove gameState) (legalMoves gameState) of
   [] -> Rose gameState (map op' (legalMoves opposite))
   _
---Rose gameState (map (othelloTree (acc+1,depth)) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState)))))
--- Rose gameState (map (\x -> Rose x []) (map (\(Just x) -> x) (map (applyMove gameState) (legalMoves gameState))))
-    | depth == 1 -> Rose gameState (map ((`Rose` []) . ((\(Just x) -> x) . applyMove gameState)) (legalMoves gameState))
+    | depth == 1 -> Rose gameState
+    (map ((`Rose` []) . ((\(Just x) -> x) . applyMove gameState))
+    (legalMoves gameState))
     | acc < depth -> Rose gameState (map op (legalMoves gameState))
     | otherwise -> Rose gameState []
   where
-        op = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove gameState
-        op' = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove opposite
-        opposite = GameState bound (Turn (otherPlayer player)) board
+      op = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove gameState
+      op' = (othelloTree (acc+1,depth) . (\(Just x) -> x)) . applyMove opposite
+      opposite = GameState bound (Turn (otherPlayer player)) board
 
 -- | Remember to create a function which returns the original player to convertLeaves
 minMaxAI' :: GameState -> Move
 minMaxAI' gameState@(GameState _ (GameOver _) _) = head (legalMoves gameState)
-minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState (getBest (repeat' player 4 (convertLeaves player (othelloTree (0,4) gameState))))
+minMaxAI' gameState@(GameState _ (Turn player) _) = getMove gameState
+  (getBest (repeat' player 4 originalTree))
+  where
+    originalTree = convertLeaves player (othelloTree (0,4) gameState)
 
 minMaxAI :: GameState -> Int -> Move
-minMaxAI gameState@(GameState _ (Turn player) _) 1 = getMove gameState (getBest (convertLeaves player (othelloTree (0,1) gameState)))
+minMaxAI gameState@(GameState _ (Turn player) _) 1 = getMove gameState
+  (getBest (convertLeaves player (othelloTree (0,1) gameState)))
 minMaxAI gameState@(GameState _ (GameOver _) _) _ = head (legalMoves gameState)
-minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState (getBest (repeat' player depth (convertLeaves player (othelloTree (0,depth) gameState))))
+minMaxAI gameState@(GameState _ (Turn player) _) depth = getMove gameState
+  (getBest (repeat' player depth originalTree))
+  where
+    originalTree = convertLeaves player (othelloTree (0,depth) gameState)
 
 getMove :: GameState -> Int -> Move
--- getMove gameState position = getMove' (zip (legalMoves gameState) [1..64 ::Int]) position
 getMove gameState = getMove' (zip (legalMoves gameState) [1..64 ::Int])
 
 getMove' :: [(Move,Int)] -> Int -> Move
@@ -118,11 +130,13 @@ getBest :: Rose (Maybe Int, GameState) -> Int
 getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
   where
     bestMove :: [(Rose (Maybe Int, GameState),Int)] -> Int
+    bestMove [] = 0
     bestMove [(_,count)] = count
-    bestMove (((Rose (int,_) _),count):[((Rose (counter,_) _),count1)])
+    bestMove ((Rose (int,_) _,count):[(Rose (counter,_) _,count1)])
       | int >= counter = count
       | otherwise = count1
-    bestMove (x@((Rose (int,_) _),count):y@((Rose (counter,_) _),count1):xs) = case null(xs) of
+    bestMove (x@(Rose (int,_) _,count):y@(Rose (counter,_) _,count1):xs) =
+      case null xs of
       True
         | int >= counter -> bestMove (x:xs)
         | otherwise -> bestMove (y:xs)
@@ -131,7 +145,8 @@ getBest (Rose (_, _) list) = bestMove (zip list [1..64 ::Int])
         | otherwise -> count1
 
 -- | Rename this function
-repeat' :: Player -> Int -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
+repeat' :: Player -> Int -> Rose (Maybe Int,GameState) ->
+   Rose (Maybe Int,GameState)
 repeat' player depth rTree = case depth of
   2 -> minMaxHeuristic player (0,2) rTree
   _ -> repeat' player (depth-1) (minMaxHeuristic player (0,depth) rTree)
@@ -139,41 +154,19 @@ repeat' player depth rTree = case depth of
 -- | Returns a game tree with leaves converted by heuristic function
 convertLeaves :: Player -> Rose GameState -> Rose (Maybe Int,GameState)
 convertLeaves player rTree@(Rose gameState _) = case rTree of
-  Rose (GameState _ _ board) [] -> Rose (Just (returnScore player board),gameState) []
+  Rose (GameState _ _ board) [] -> 
+    Rose (Just (returnScore player board),gameState) []
   Rose _ rose -> Rose (Nothing,gameState) (map (convertLeaves player) rose)
 
 -- | Heuristic function for MinMax
-minMaxHeuristic :: Player -> (Int,Int) -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,GameState)
+minMaxHeuristic :: Player -> (Int,Int) -> Rose (Maybe Int,GameState) -> 
+  Rose (Maybe Int,GameState)
 minMaxHeuristic player (acc,depth) (Rose (_,gameState) list)
   | (acc == 0) && (0== depth) = Rose (Nothing,gameState) []
-  | acc < (depth -1) = Rose (Nothing,gameState) (map (minMaxHeuristic player (acc+1,depth)) list)
-  | otherwise = Rose (Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
-
--- | Heuristic function for MinMax
-startAB :: Player -> (Int,Int,Int) -> Rose (Maybe Int,GameState) -> Rose (Maybe Int,Maybe Int,GameState)
-startAB player (acc,depth,beta) (Rose (_,gameState) list)
-  | (acc == 0) && (0== depth) = Rose (Nothing,Nothing,gameState) []
-  | acc < (depth - 1) = Rose (Nothing,Nothing,gameState) [startAB player (acc+1,depth,beta) (head list)]
-  | otherwise = Rose (alpha,alpha,gameState) []
-    where
-      alpha = Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list))
-
-travelAB :: Player -> Int -> Rose (Maybe Int,GameState) -> Int
-travelAB player travel roseTree@(Rose (_,gameState) list) = case (roseSize roseTree) < travel of
-  False -> travelAB player travel (head list)
-  True
-    | null((\(Rose _ x) -> x) (head(list))) -> (\(Rose (Just x,_) _) -> x) (list!!(travel-1))
-  where
-    alpha = Just (comparison player (map (\(Rose (Just x,y) _) -> (x,y)) list))
-
--- | Alpha-beta
-aBeta :: Player -> Rose (Maybe Int,Maybe Int, GameState) -> Rose (Maybe Int,Maybe Int, GameState)
-aBeta player (Rose (_,alpha,gameState) list)
-  | null((\(Rose _ x) -> x) (head(list))) = case list of
-    x:y:z:zs 
-      | True -> undefined
-  | not (null(list)) = Rose (Nothing,Nothing,gameState) (map (aBeta player) [head list])
-  | otherwise = undefined
+  | acc < (depth -1) = Rose (Nothing,gameState) 
+    (map (minMaxHeuristic player (acc+1,depth)) list)
+  | otherwise = Rose (Just (comparison player 
+    (map (\(Rose (Just x,y) _) -> (x,y)) list)),gameState) []
 
 -- | Case player in this.
 comparison :: Player -> [(Int, GameState)] -> Int
@@ -253,13 +246,16 @@ corner player board
 -- | Returns a score which rates each board from a given player's perspective
 returnScore :: Player -> Board -> Int
 returnScore player board
-  | minieLength + maxieLength /= 0 = 80*((maxieLength - minieLength) `div` (maxieLength + minieLength))
+  | minieLength + maxieLength /= 0 = 80*((maxieLength - minieLength) 
+    `div` (maxieLength + minieLength))
     + 20 * (maxie - minie) `div` (maxie + minie) + 200*corner player board
-  | otherwise = 20 * (maxie - minie) `div` (maxie + minie) + 200*corner player board
+  | otherwise = 20 * (maxie - minie) `div` (maxie + minie) 
+  + 200*corner player board
   where
     minie = currentScore board (otherPlayer player)
     maxie = currentScore board player
-    minieLength = length (legalMoves (GameState (8,8) (Turn (otherPlayer player)) board))
+    minieLength = length (legalMoves (GameState (8,8) 
+      (Turn (otherPlayer player)) board))
     maxieLength = length (legalMoves (GameState (8,8) (Turn player) board))
 
 -- returnScore player board
